@@ -1,0 +1,181 @@
+<html>
+<body style='font-family:Georgia'>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<script
+src="http://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<canvas id='cnvs'></canvas>
+<hr>
+<div>time: <span id='time'>0.00</span> sec</div>
+<input type='button' style='font:inherit' value='start/stop' onclick='(running ? stop : start)();'></input>
+<input type='button' style='font:inherit' value='toggle guides' onclick='guides=!guides;draw()'></input>
+<div id='vars'></div>
+<hr>
+<h3>Equations</h3>
+The time for the horizontal photon is calculated in two parts: the time from
+the source to the mirror, $t_1$, and the time back from the mirror to the
+source, $t_2$.
+$$t_1 = \frac{l + t_1}{c} \implies t_1 = \frac{l}{c-v}$$
+$$t_2 = \frac{l - t_2}{c} \implies t_2 = \frac{l}{c+v}$$
+So that the total time is
+$$t_\parallel = t_1 + t_2 = \frac{l}{c-v} + \frac{l}{c+v} =
+\frac{2lc}{c^2-v^2}.$$
+The time for the non-parallel photon, $t_\bot$ can be calculated by considering an
+an isosceles triangle with a base of length $vt_\bot$ and a height of $l$.
+
+The distance it must travel in the time is the sum of the hypotenuses of the enclosed
+right-angled triangles. I.e. $s = \sqrt{l^2 + (\frac{1}{2}vt_\bot)^2}$.
+
+From this it follows that:
+
+$$t_\bot = \frac{s}{c} = \frac{2}{c}\sqrt{l^2 + (\frac{1}{2}vt_\bot)^2}$$
+$$\implies t^2c^2 = 4(\frac{v^2t^2}{4} + l^2)$$
+$$\implies t^2(c^2 - v^2) = 4l^2$$
+$$\implies t = \frac{2l}{\sqrt{c^2-v^2}}$$
+$$t_\bot = \frac{2l}{\sqrt{c^2-v^2}}.$$
+
+The two different times can now be compared. Clearly, for all velocities less
+than the speed of light, the quantity $c^2-v^2$ will be between $0$ and
+$1$. This means that $\sqrt{c^2-v^2} \gt c^2-v^2$. Since these are the
+denominators of the formulas for $t_\parallel$ and $t_\bot$, it follows that
+$t_\bot \lt t_\parallel$.
+
+<p>That is to say that if the speed of light is relative to an aether, then the
+light emitted parallel to the direction of motion should reflect back to the
+source faster that the photon emitted so that it reflects off a mirror
+perpendicular to the direction of motion.
+
+<p>If this time difference could be measured via an interferometer, then the
+existence of an aether would be confirmed. It was not detected at any angle of
+the apparatus, so length contraction was proposed, claiming that the lengths
+parallel to the direction of motion shorten in just the right proporition to
+the experiments velocity so that the times come out the same.
+
+<hr>
+
+Finally for the sake of this simulation, it should be noted that the direction
+of the non-horizontal photon's velocity is important, as well as magnitude,
+espsecially for this simulation. It must be set so that the photon reflects
+back to the source. The initial velocity can be shown to be given by the
+following through considering the geometry of the isosceles path.
+
+$$\vec{v_\bot} = c * \pmatrix{
+    l / \sqrt{l^2 + (\frac{1}{2}vt_\bot)^2} \\
+    \frac{1}{2}vt_\bot / \sqrt{l^2 + (\frac{1}{2}vt_\bot)^2}
+}.$$
+Note that it still has magnitude $c$.
+<script>
+let cnvs = document.getElementById('cnvs');
+let ctx = cnvs.getContext('2d');
+
+cnvs.width = 900;
+cnvs.height = 600;
+cnvs.style.border = '1px solid black';
+
+function draw_circle(x, y, r) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function draw_line(x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.stroke();
+}
+
+
+grid = 50;
+
+mshort = 10;
+mlong = 60;
+
+spaceship = [grid * 2, grid * 8];
+mdist = 200;
+vx = 50;
+
+c = 80;
+L = mdist;
+t = 2 * L / ( c ** 2 - vx ** 2) ** 0.5;
+hyp = (L ** 2 + ( vx * t / 2) ** 2) ** 0.5;
+cupy = c * L / hyp;
+cupx = c * (vx * t / 2) / hyp;
+cright = c;
+
+tt = 2 * L * c / (c ** 2 - vx **2);
+
+//photons
+pright = spaceship.slice();
+pup = spaceship.slice();
+r = 4;
+
+s = '';
+for (let v of [
+    ['grid spacing', grid, 'pix'],
+    ['distance to mirrors ($l$)', mdist, 'pix'],
+    ['speed of experiment ($v$)', vx, 'pix/sec'],
+    ['speed of light ($c$)', c, 'pix/sec'],
+    ['calculated non-parallel time ($t_\\bot$)', t.toFixed(2), 'sec'],
+    ['calculated non-parallel time ($t_\\parallel$)', tt.toFixed(2), 'sec']
+    ])
+    s += `${v[0]} $= ${v[1]}$ ${v[2]}\n`;
+document.getElementById('vars').innerText = s;
+
+running = false;
+var lasttime;
+var elapsed = 0;
+var guides = false;
+
+start = function() {
+    running = true;
+    lasttime = performance.now();
+    requestAnimationFrame(update);
+};
+
+stop = function() {running = false};
+
+function draw(){
+    ctx.clearRect(0,0,cnvs.width,cnvs.height);
+    ctx.lineWidth = 1;
+    draw_circle(...spaceship, r);
+    ctx.fillRect(spaceship[0] - mlong / 2, spaceship[1] - mdist - mshort, mlong, mshort);
+    ctx.fillRect(spaceship[0] + mdist, spaceship[1] - mlong / 2, mshort, mlong);
+    draw_circle(...pright, r);
+    draw_circle(...pup, r);
+    if (!guides) return;
+    draw_line(...pright, pright[0] + cright, pright[1]);
+    draw_line(...pup, pup[0] + cupx, pup[1] - cupy);
+    ctx.lineWidth = 0.1;
+    for (let r = grid; r < cnvs.height; r += grid)
+        draw_line(0, r, cnvs.width, r);
+    for (let c = grid; c < cnvs.width; c += grid)
+        draw_line(c, 0, c, cnvs.height);
+    draw_line(pup[0] - 100 * cupx, pup[1] + 100 * cupy,
+              pup[0] + 100 * cupx, pup[1] - 100 * cupy);
+}
+
+function update(time){
+    dt = (time - lasttime ) / 1000;
+    elapsed += dt;
+    lasttime = time;
+    document.getElementById('time').innerText = elapsed.toFixed(2);
+    // move ship
+    spaceship[0] += vx * dt;
+    // move photon
+    pright[0] += cright * dt;
+    pup[0] += cupx * dt;
+    pup[1] -= cupy * dt;
+    if (pright[0] + r / 2 > spaceship[0] + mdist) cright *= -1;
+    if (pup[1] - r / 2 < spaceship[1] - mdist) cupy *= -1;
+
+    // draw
+    draw();
+    if (running) requestAnimationFrame(update);
+}
+
+draw();
+</script>
+</body>
